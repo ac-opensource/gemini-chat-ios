@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NOTE</key>
+	<string>I expect this key to leak so don&apos;t worry, it&apos;s just on free tier and can disable it anytime</string>
+	<key>API_KEY</key>
+	<string>AIzaSyBm6d4hvw84RO-WWjdeEkFY8eNZDhc1v6w</string>
+</dict>
+</plist>
