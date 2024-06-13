@@ -1,10 +1,10 @@
 import PhotosUI
 import SwiftUI
 
-
-public struct MultimodalInputField: View {
+public struct MultimodalInputField<Label>: View where Label: View {
   @Binding public var text: String
   @Binding public var selection: [PhotosPickerItem]
+  private var label: () -> Label
 
   @Environment(\.submitHandler) var submitHandler
 
@@ -28,9 +28,11 @@ public struct MultimodalInputField: View {
   }
 
   public init(text: Binding<String>,
-              selection: Binding<[PhotosPickerItem]>) {
+              selection: Binding<[PhotosPickerItem]>,
+              @ViewBuilder label: @escaping () -> Label) {
     _text = text
     _selection = selection
+    self.label = label
   }
 
   public var body: some View {
@@ -77,10 +79,8 @@ public struct MultimodalInputField: View {
           .stroke(Color(UIColor.systemFill), lineWidth: 1)
         }
 
-        Button(action: submit) {
-          Text("Go")
-        }
-        .padding(.top, 8)
+        Button(action: submit, label: label)
+          .padding(.bottom, 4)
       }
     }
     .padding(.horizontal)
@@ -119,7 +119,10 @@ public struct MultimodalInputField: View {
     @State private var selectedImages = [Image]()
 
     var body: some View {
-      MultimodalInputField(text: $userInput, selection: $selectedItems)
+      MultimodalInputField(text: $userInput, selection: $selectedItems) {
+        Image(systemName: "arrow.up.circle.fill")
+          .font(.title)
+      }
         .onChange(of: selectedItems) { _ in
           Task {
             selectedImages.removeAll()

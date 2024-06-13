@@ -1,9 +1,12 @@
 import Foundation
+import _PhotosUI_SwiftUI
 import GoogleGenerativeAI
-import UIKit
+import SwiftUI
 
 @MainActor
 class ConversationViewModel: ObservableObject {
+  private static let largestImageDimension = 768.0
+
   /// This array holds both the user's and the system's chat messages
   @Published var messages = [ChatMessage]()
 
@@ -26,10 +29,10 @@ class ConversationViewModel: ObservableObject {
     chat = model.startChat()
   }
 
-  func sendMessage(_ text: String, streaming: Bool = true) async {
+  func sendMessage(_ text: String, images: [PhotosPickerItem], streaming: Bool = true) async {
     error = nil
     if streaming {
-      await internalSendMessageStreaming(text)
+      await internalSendMessageStreaming(text, images: images)
     } else {
       await internalSendMessage(text)
     }
@@ -47,7 +50,7 @@ class ConversationViewModel: ObservableObject {
     error = nil
   }
 
-  private func internalSendMessageStreaming(_ text: String) async {
+  private func internalSendMessageStreaming(_ text: String, images: [PhotosPickerItem]) async {
     chatTask?.cancel()
 
     chatTask = Task {
@@ -56,17 +59,50 @@ class ConversationViewModel: ObservableObject {
         busy = false
       }
 
+      var selectedImages: [Image] = []
+
+      for item in images {
+        if let data = try? await item.loadTransferable(type: Data.self) {
+          if let uiImage = UIImage(data: data) {
+            let image = Image(uiImage: uiImage)
+            selectedImages.append(image)
+          }
+        }
+      }
+      
       // first, add the user's message to the chat
-      let userMessage = ChatMessage(message: text, participant: .user)
+      let userMessage = ChatMessage(message: text, images: selectedImages, participant: .user)
       messages.append(userMessage)
 
       // add a pending message while we're waiting for a response from the backend
       let systemMessage = ChatMessage.pending(participant: .system)
       messages.append(systemMessage)
 
+      var parts = [any ThrowingPartsRepresentable]()
+      
+      for item in images {
+        if let data = try? await item.loadTransferable(type: Data.self) {
+          guard let image = UIImage(data: data) else {
+            continue
+          }
+          if image.size.fits(largestDimension: ConversationViewModel.largestImageDimension) {
+            parts.append(image)
+          } else {
+            guard let resizedImage = image
+              .preparingThumbnail(of: image.size
+                .aspectFit(largestDimension: ConversationViewModel.largestImageDimension)) else {
+              continue
+            }
+
+            parts.append(resizedImage)
+          }
+        }
+      }
+
       do {
-        let responseStream = chat.sendMessageStream(text)
+        let responseStream = chat.sendMessageStream(text, parts)
         for try await chunk in responseStream {
+          
           messages[messages.count - 1].pending = false
           if let text = chunk.text {
             messages[messages.count - 1].message += text
@@ -90,7 +126,7 @@ class ConversationViewModel: ObservableObject {
       }
 
       // first, add the user's message to the chat
-      let userMessage = ChatMessage(message: text, participant: .user)
+      let userMessage = ChatMessage(message: text, images: [], participant: .user)
       messages.append(userMessage)
 
       // add a pending message while we're waiting for a response from the backend
@@ -111,6 +147,23 @@ class ConversationViewModel: ObservableObject {
         print(error.localizedDescription)
         messages.removeLast()
       }
+    }
+  }
+}
+
+private extension CGSize {
+  func fits(largestDimension length: CGFloat) -> Bool {
+    return width <= length && height <= length
+  }
+
+  func aspectFit(largestDimension length: CGFloat) -> CGSize {
+    let aspectRatio = width / height
+    if width > height {
+      let width = min(self.width, length)
+      return CGSize(width: width, height: round(width / aspectRatio))
+    } else {
+      let height = min(self.height, length)
+      return CGSize(width: round(height * aspectRatio), height: height)
     }
   }
 }

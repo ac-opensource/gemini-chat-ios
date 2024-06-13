@@ -1,4 +1,7 @@
 import Foundation
+import _PhotosUI_SwiftUI
+import PhotosUI
+import SwiftUI
 
 enum Participant {
   case system
@@ -8,18 +11,19 @@ enum Participant {
 struct ChatMessage: Identifiable, Equatable {
   let id = UUID().uuidString
   var message: String
+  var images: [Image]
   let participant: Participant
   var pending = false
 
   static func pending(participant: Participant) -> ChatMessage {
-    Self(message: "", participant: participant, pending: true)
+    Self(message: "", images: [], participant: participant, pending: true)
   }
 }
 
 extension ChatMessage {
   static var samples: [ChatMessage] = [
-    .init(message: "Hi there! How can I help you today?", participant: .system),
-    .init(message: "Could you show me a simple loop in Swift?", participant: .user),
+    .init(message: "Hi there! How can I help you today?", images: [], participant: .system),
+    .init(message: "Could you show me a simple loop in Swift?", images: [], participant: .user),
     .init(message: """
     Absolutely! Here's an example of a basic loop in Swift:
 
@@ -42,7 +46,7 @@ extension ChatMessage {
     ```
 
     This loop calculates the total sum of numbers from 1 to 100. The variable `total` starts at 0. The `for` loop iterates over each number from 1 to 100, with `number` being assigned each value. Each `number` is then added to `total`. After the loop completes, the final sum is printed.
-    """, participant: .system),
+    """, images: [], participant: .system),
   ]
 
   static var sample = samples[2]

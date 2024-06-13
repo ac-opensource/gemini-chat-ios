@@ -1,4 +1,5 @@
 import GoogleGenerativeAI
+import PhotosUI
 import SwiftUI
 
 struct ConversationScreen: View {
@@ -7,6 +8,9 @@ struct ConversationScreen: View {
 
   @State
   private var userPrompt = ""
+
+  @State
+  private var selectedItems = [PhotosPickerItem]()
 
   enum FocusedField: Hashable {
     case message
@@ -50,12 +54,14 @@ struct ConversationScreen: View {
           }
         })
       }
-      InputField("Message...", text: $userPrompt) {
+      MultimodalInputField(text: $userPrompt, selection: $selectedItems) {
         Image(systemName: viewModel.busy ? "stop.circle.fill" : "arrow.up.circle.fill")
           .font(.title)
       }
-      .focused($focusedField, equals: .message)
-      .onSubmit { sendOrStop() }
+        .focused($focusedField, equals: .message)
+        .onSubmit {
+          sendOrStop()
+        }
     }
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
@@ -73,8 +79,10 @@ struct ConversationScreen: View {
   private func sendMessage() {
     Task {
       let prompt = userPrompt
+      let images = selectedItems
       userPrompt = ""
-      await viewModel.sendMessage(prompt, streaming: true)
+      selectedItems.removeAll()
+      await viewModel.sendMessage(prompt, images: images, streaming: true)
     }
   }
 

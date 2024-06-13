@@ -55,26 +55,39 @@ struct MessageView: View {
   var message: ChatMessage
 
   var body: some View {
-    HStack {
-      if message.participant == .user {
-        Spacer()
+    VStack {
+      HStack {
+        if message.participant == .user {
+          Spacer()
+        }
+        MessageContentView(message: message)
+          .padding(10)
+          .background(message.participant == .system
+            ? Color(UIColor.systemFill)
+            : Color(UIColor.systemBlue))
+          .roundedCorner(10,
+                         corners: [
+                           .topLeft,
+                           .topRight,
+                           message.participant == .system ? .bottomRight : .bottomLeft,
+                         ])
+        if message.participant == .system {
+          Spacer()
+        }
       }
-      MessageContentView(message: message)
-        .padding(10)
-        .background(message.participant == .system
-          ? Color(UIColor.systemFill)
-          : Color(UIColor.systemBlue))
-        .roundedCorner(10,
-                       corners: [
-                         .topLeft,
-                         .topRight,
-                         message.participant == .system ? .bottomRight : .bottomLeft,
-                       ])
-      if message.participant == .system {
-        Spacer()
+      .listRowSeparator(.hidden)
+      
+      ForEach(0 ..< message.images.count, id: \.self) { i in
+        HStack {
+          message.images[i]
+            .resizable()
+            .scaledToFill()
+            .frame(width: .infinity)
+            .cornerRadius(8)
+        }
       }
     }
-    .listRowSeparator(.hidden)
+    
   }
 }
 
@@ -85,7 +98,7 @@ struct MessageView_Previews: PreviewProvider {
         MessageView(message: ChatMessage.samples[0])
         MessageView(message: ChatMessage.samples[1])
         MessageView(message: ChatMessage.samples[2])
-        MessageView(message: ChatMessage(message: "Hello!", participant: .system, pending: true))
+        MessageView(message: ChatMessage(message: "Hello!", images: [], participant: .system, pending: true))
       }
       .listStyle(.plain)
       .navigationTitle("Chat sample")
